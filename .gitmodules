@@ -1,0 +1,4 @@
+[submodule "AVData"]
+	path = AVData
+	url = git@github.com:Ford/AVData.git
+	branch = master
