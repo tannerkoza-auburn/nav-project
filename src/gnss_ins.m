@@ -13,7 +13,7 @@ logName = "2017-08-04-V3-Log3";
 fprintf('nav-project: loading and calculating data...\n')
 
 rootDir = fullfile(fileparts(which(mfilename)), "..");
-dataDir = fullfile(rootDir, "data");
+dataDir = fullfile(rootDir, "data", logName);
 filePath = fullfile(dataDir, logName);
 
 data = extractData(filePath);

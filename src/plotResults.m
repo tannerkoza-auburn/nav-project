@@ -45,16 +45,17 @@ axis padded
 
 figure("Name","Geoplot Trajectory")
 
-geoplot(data.truth.LLA(:,1), data.truth.LLA(:,2))
+geoplot(data.truth.LLA(:,1), data.truth.LLA(:,2), '.')
 hold on
-geoplot(data.gps.LLA(:,1), data.gps.LLA(:,2))
+geoplot(data.gps.LLA(:,1), data.gps.LLA(:,2), '.')
 hold off
 
+l2 = legend('Truth', 'GPS','Location', 'SouthEast');
 t2 = title('2D Trajectory: LLA');
 
 grid
 set(t2,'FontSize', fontTitle);
-set(l1,'FontSize', fontLegend);
+set(l2,'FontSize', fontLegend);
 geobasemap satellite
 
 end
