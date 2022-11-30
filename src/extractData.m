@@ -33,5 +33,6 @@ out.gps.NED = ecef2ned(out.gps.ECEF, initLLA);
 
 out.truth.time = data.pose_ground_truth.Time;
 out.gps.time = data.gps.Time;
+out.imu.time = data.imu.Time;
 
 end
