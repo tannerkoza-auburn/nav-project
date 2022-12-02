@@ -19,6 +19,11 @@ gpsAlt = data.gps.altitude;
 gpsLLA = [deg2rad(gpsLat) deg2rad(gpsLon) gpsAlt]; % radians
 out.gps.LLA = [gpsLat gpsLon gpsAlt];
 
+out.truth.quaternion = [data.pose_ground_truth.pose_orientation_w...
+    data.pose_ground_truth.pose_orientation_x...
+    data.pose_ground_truth.pose_orientation_y...
+    data.pose_ground_truth.pose_orientation_z];
+
 %% CALCULATE NEW VALUES
 
 out.truth.ECEF = ned2ecef(out.truth.NED, initLLA);
@@ -29,17 +34,22 @@ out.truth.LLA = [rad2deg(truthLLA(:,1)) rad2deg(truthLLA(:,2)) ...
 out.gps.ECEF = llh2ecef(gpsLLA);
 out.gps.NED = ecef2ned(out.gps.ECEF, initLLA);
 
+out.truth.euler = qua2Euler(out.truth.quaternion);
+
 %% REASSIGN UNMODIFIED VALUES
 
-out.truth.time = data.pose_ground_truth.Time;
-out.gps.time = data.gps.Time;
-out.imu.time = data.imu.Time;
-out.raw_velocity.time = data.velocity_raw.Time;
-
-out.truth.orientation_wxyz = [data.pose_ground_truth.pose_orientation_w...
-    data.pose_ground_truth.pose_orientation_x...
-    data.pose_ground_truth.pose_orientation_y...
-    data.pose_ground_truth.pose_orientation_z];
+out.truth.timeEpoch = data.pose_ground_truth.Time;
+out.truth.timeDuration = data.pose_ground_truth.Time ...
+    - data.pose_ground_truth.Time(1);
+out.gps.timeEpoch = data.gps.Time;
+out.gps.timeDuration = data.gps.Time ...
+    - data.gps.Time(1);
+out.imu.timeEpoch = data.imu.Time;
+out.imu.timeDuration = data.imu.Time ...
+    - data.imu.Time(1);
+out.raw_velocity.timeEpoch = data.velocity_raw.Time;
+out.raw_velocity.timeDuration = data.velocity_raw.Time ...
+    - data.velocity_raw.Time(1);
 
 out.imu.linear_acceleration = [data.imu.linear_acceleration_x...
     data.imu.linear_acceleration_y data.imu.linear_acceleration_z];
