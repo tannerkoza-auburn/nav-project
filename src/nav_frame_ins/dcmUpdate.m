@@ -1,5 +1,7 @@
 function Cbn = dcmUpdate(wBI_B, Cbn, omegaEI_N, omegaNE_N, dt, type)
 
+
+
     switch lower(type)
 
         case 'lofi'

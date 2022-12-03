@@ -49,9 +49,10 @@ function plotResults(data)
     geoplot(data.truth.LLA(:, 1), data.truth.LLA(:, 2), '.')
     hold on
     geoplot(data.gps.LLA(:, 1), data.gps.LLA(:, 2), '.')
+    geoplot(data.results.ins.LLA(:,1), data.results.ins.LLA(:,2),'.')
     hold off
 
-    l2 = legend('Truth', 'GPS', 'Location', 'SouthEast');
+    l2 = legend('Truth', 'GPS','INS', 'Location', 'SouthEast');
     t2 = title('2D Trajectory: LLA');
 
     grid
@@ -64,10 +65,10 @@ function plotResults(data)
     subplot(3, 1, 1)
     plot(data.truth.timeDuration, data.truth.euler(:, 1), '.k')
     hold on
-    plot(data.results.timeDuration, data.results.euler(:, 3), '.')
+    plot(data.results.timeDuration, data.results.ins.euler(:, 3), '.')
     hold on
 
-    l3 = legend('Truth', 'Mechanized', 'Location', 'SouthEast');
+    l3 = legend('Truth', 'INS', 'Location', 'SouthEast');
     t3 = title('Attitude: Yaw');
     x3 = xlabel('time [s]');
     y3 = ylabel('yaw [deg]');
@@ -82,7 +83,7 @@ function plotResults(data)
     subplot(3, 1, 2)
     plot(data.truth.timeDuration, data.truth.euler(:, 2), '.k')
     hold on
-    plot(data.results.timeDuration, data.results.euler(:, 2), '.')
+    plot(data.results.timeDuration, data.results.ins.euler(:, 2), '.')
     hold on
 
     l4 = legend('Truth', 'Mechanized', 'Location', 'SouthEast');
@@ -101,7 +102,7 @@ function plotResults(data)
     subplot(3, 1, 3)
     plot(data.truth.timeDuration, data.truth.euler(:, 3), '.k')
     hold on
-    plot(data.results.timeDuration, data.results.euler(:, 1), '.')
+    plot(data.results.timeDuration, data.results.ins.euler(:, 1), '.')
     hold on
 
     l5 = legend('Truth', 'Mechanized', 'Location', 'SouthEast');
