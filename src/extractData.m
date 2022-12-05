@@ -33,7 +33,7 @@ out.truth.LLA = [rad2deg(truthLLA(:,1)) rad2deg(truthLLA(:,2)) ...
 out.gps.ECEF = llh2ecef(out.gps.LLA);
 out.gps.NED = ecef2ned(out.gps.ECEF, mapOriginLLA);
 
-out.truth.euler = qua2Euler(out.truth.quaternion);
+out.truth.euler = qua2euler(out.truth.quaternion);
 
 %% REASSIGN UNMODIFIED VALUES
 
