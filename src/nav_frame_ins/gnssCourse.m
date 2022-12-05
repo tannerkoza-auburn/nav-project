@@ -1,11 +1,11 @@
-function [course, nedVelocityNorm, gnssVelocity] = gnssCourseAlignment(llaNew, llaOld, dt, nedOriginLLA)
+function [course, nedVelocityNorm, gnssVelocity] = gnssCourse(llaNew, llaOld, dt, nedOriginLLA)
 
-    nedOriginLLA = [deg2rad(nedOriginLLA(1)) deg2rad(nedOriginLLA(2)) llaNew(3)];
+    nedOriginLLA = [deg2rad(nedOriginLLA(1)) deg2rad(nedOriginLLA(2)) 0];
 
-    ecefNew = llh2ecef([deg2rad(llaNew(1)) deg2rad(llaNew(2)) llaNew(3)]);
+    ecefNew = llh2ecef(llaNew);
     nedNew = ecef2ned(ecefNew, nedOriginLLA);
 
-    ecefOld = llh2ecef([deg2rad(llaOld(1)) deg2rad(llaOld(2)) llaOld(3)]);
+    ecefOld = llh2ecef(llaOld);
     nedOld = ecef2ned(ecefOld, nedOriginLLA);
 
     nVelocity = (nedNew(1) - nedOld(1))/dt;
