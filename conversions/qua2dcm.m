@@ -46,7 +46,7 @@ function DCMbn = qua2dcm(qua)
 % URL:     https://github.com/rodralez/navego
 
 % Quaternion format from Crassidis' book.
-a = qua(4); b = qua(1); c = qua(2); d = qua(3);
+a = qua(1); b = qua(2); c = qua(3); d = qua(4);
 
 DCMbn(1,1) = a*a + b*b - c*c - d*d;
 DCMbn(1,2) = 2*(b*c - a*d);
