@@ -30,6 +30,15 @@ eulerLog = zeros(numEpochs, 3);
 velLog = zeros(numEpochs, 3);
 posLog = zeros(numEpochs, 3);
 
+gpsSamplingFreq = 100; % downsampled gps frequency
+
+gpsSampleInterval = 200 / gpsSamplingFreq;
+
+insTime = data.imu.timeEpoch;
+gpsTime = data.gps.timeEpoch(1:gpsSampleInterval:end);
+gpsPositionLLA = [data.gps.LLA(1:gpsSampleInterval:end, 1) ...
+    data.gps.LLA(1:gpsSampleInterval:end, 2) data.gps.LLA(1:gpsSampleInterval:end, 3)];
+
 %% NAV MECHANIZATION OF IMU
 
 %initialize
@@ -47,6 +56,9 @@ nedPos = zeros(3,1);
 for t=2:length(data.imu.timeEpoch)
 
     dt=data.imu.timeEpoch(t)-data.imu.timeEpoch(t-1);
+
+    gpsIdx = find(gpsTime <= insTime(t) & gpsTime > insTime(t-1));
+    gpsMeasStatus = ~isempty(gpsIdx);
 
 %update radii
 [Rn, Re] = earthRadius(deg2rad(Lb));
@@ -88,16 +100,22 @@ f_ib_n=C_b_n*f_ib_b';
     Lb=Lb+dt*(v_eb_n(1)/(Rn+hb));
 lamb=lamb+dt*(v_eb_n(2)/ (cos(Lb)*(Re+hb)));
 
+if gpsMeasStatus
+    Lb = gpsPositionLLA(gpsIdx,1);
+    lamb = gpsPositionLLA(gpsIdx,2);
+    hb = gpsPositionLLA(gpsIdx,3);
+end
+
 % Logging
 nedPos = nedPos + v_eb_n'*dt;
-nedLog(t,:) = nedPos;
+% nedLog(t,:) = nedPos;
 eulerLog(t,:) = euler;
 velLog(t,:) = v_eb_n';
 posLog(t,:) = [Lb lamb hb];
 end
 
 
- geoplot(posLog(2:end,1), posLog(2:end,2))
+ geoplot(rad2deg(posLog(2:end,1)), rad2deg(posLog(2:end,2)))
 hold on
 geoplot(data.truth.LLA(:,1),data.truth.LLA(:,2))
 figure
