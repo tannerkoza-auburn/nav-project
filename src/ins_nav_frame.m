@@ -40,9 +40,11 @@ bufferIdx = 1;
 
 % Attitude
 insEulerAngles = [0 0 0];
-Cbn = [0.6428 0.7660 0; ...
-    -0.7660 0.6428 0; ...
-    0 0 1.0000]'; % unaligned with nav-frame
+
+Cbn = qua2dcm(data.truth.quaternion(1,:));
+% Cbn = [0.6428 0.7660 0; ...
+%     -0.7660 0.6428 0; ...
+%     0 0 1.0000]'; % unaligned with nav-frame
 
 % Cbn = [  0.6887   -0.7251         0;
 %     0.7251    0.6887         0;
@@ -59,7 +61,7 @@ insVelocityNEDLog = zeros(numSamplesIMU, 3);
 % Position
 insPositionLLA = data.gps.LLA(1,:); % initial position
 gpsPositionLLA = data.gps.LLA(1:gpsSampleInterval:end, :);
-mapOriginLLA = [42.294319 -83.223275 0];
+mapOriginLLA = [deg2rad(42.294319) deg2rad(-83.223275) 0];
 
 insPositionLLALog = zeros(numSamplesIMU, 3);
 insPositionLLALog(1,:) = insPositionLLA;
@@ -67,6 +69,8 @@ insPositionLLALog(1,:) = insPositionLLA;
 % Status Booleans
 insAligned = 0;
 gpsMeasStatus = 0;
+
+%% INS MECHANIZATION
 
 for i = 2:numSamplesIMU
 
@@ -77,7 +81,7 @@ for i = 2:numSamplesIMU
 
 %     % Dynamic Alignment
 %     % check if filter is aligned and two gps positions are available
-%     gpsIdx = find(gpsTime <= insTime(i) & gpsTime > insTime(i-1));
+%     
 %     gpsMeasStatus = ~isempty(gpsIdx);
 % 
 %     if ~insAligned && gpsMeasStatus
@@ -130,14 +134,28 @@ for i = 2:numSamplesIMU
 
 end
 
-%%
+%% Error Calculations
+
+eulerInterp = interp1(data.truth.timeEpoch, data.truth.euler, data.imu.timeEpoch);
+velInterp = interp1(data.raw_velocity.timeEpoch, data.raw_velocity.NED, data.imu.timeEpoch);
+% sqrt(mean((state_truth - pdr).^2))
+
+posNED = cumsum(diff(ecef2ned(llh2ecef(insPositionLLALog), mapOriginLLA)));
+posNED = [zeros(1,3); posNED];
+truthNED = cumsum(diff(data.truth.NED));
+truthNED = interp1(data.truth.timeEpoch(2:end), truthNED, data.imu.timeEpoch(2:end));
+truthNED = [zeros(1,3); truthNED];
+
+RMSE = sqrt(mean((truthNED - posNED).^2))
+
+%% Plotting
 
 % Colors
-blue = [0, 0.4470, 0.7410];
+green = [0, 0.4470, 0.7410];
 orange = [0.8500, 0.3250, 0.0980];
 green = [0.4660, 0.6740, 0.1880];
 yellow = [0.9290, 0.6940, 0.1250];
-lightBlue = [0.3010, 0.7450, 0.9330];
+green = [0.3010, 0.7450, 0.9330];
 
 % Font Sizes
 fontTitle = 25;
@@ -152,15 +170,16 @@ lineWidth = 1.75;
 markerSize = 10;
 
 % Attitude
-figure("Name", "Attitude: Euler Angles")
-subplot(3, 1, 1)
+% Yaw
+figure("Name", "Yaw")
+subplot(2, 1, 1)
 plot(data.truth.timeDuration, data.truth.euler(:, 1), '.k')
 hold on
-plot(data.imu.timeDuration, insEulerAnglesLog(:, 3), '.')
+plot(data.imu.timeDuration, insEulerAnglesLog(:, 3), '.', 'Color', green)
 hold on
 
 l3 = legend('Truth', 'INS', 'Location', 'SouthEast');
-t3 = title('Attitude: Yaw');
+t3 = title('Yaw Comparison');
 x3 = xlabel('time [s]');
 y3 = ylabel('yaw [deg]');
 ax3 = gca;
@@ -171,53 +190,98 @@ set(x3, 'FontSize', fontLabel);
 set(y3, 'FontSize', fontLabel);
 set(l3, 'FontSize', fontLegend);
 
-subplot(3, 1, 2)
+subplot(2, 1, 2)
+plot(data.imu.timeDuration, insEulerAnglesLog(:,3) - eulerInterp(:,1), '.r')
+
+t3e = title('Yaw Error');
+x3e = xlabel('time [s]');
+y3e = ylabel('yaw error [deg]');
+ax3e = gca;
+ax3e.YLim = [-5 5];
+
+grid
+set(t3e, 'FontSize', fontTitle);
+set(x3e, 'FontSize', fontLabel);
+set(y3e, 'FontSize', fontLabel);
+
+% Pitch
+figure("Name", "Pitch")
+subplot(2, 1, 1)
 plot(data.truth.timeDuration, data.truth.euler(:, 2), '.k')
 hold on
-plot(data.imu.timeDuration, insEulerAnglesLog(:, 2), '.')
+plot(data.imu.timeDuration, insEulerAnglesLog(:, 2), '.', 'Color', green)
 hold on
 
-l4 = legend('Truth', 'INS', 'Location', 'SouthEast');
-t4 = title('Attitude: Pitch');
-x4 = xlabel('time [s]');
-y4 = ylabel('pitch [deg]');
-ax4 = gca;
+l3 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t3 = title('Pitch Comparison');
+x3 = xlabel('time [s]');
+y3 = ylabel('pitch [deg]');
+ax3 = gca;
 
 grid
-ax4.YLim = ax3.YLim;
-set(t4, 'FontSize', fontTitle);
-set(x4, 'FontSize', fontLabel);
-set(y4, 'FontSize', fontLabel);
-set(l4, 'FontSize', fontLegend);
+set(t3, 'FontSize', fontTitle);
+set(x3, 'FontSize', fontLabel);
+set(y3, 'FontSize', fontLabel);
+set(l3, 'FontSize', fontLegend);
 
-subplot(3, 1, 3)
+subplot(2, 1, 2)
+plot(data.imu.timeDuration, insEulerAnglesLog(:,2) - eulerInterp(:,2), '.r')
+
+t3e = title('Pitch Error');
+x3e = xlabel('time [s]');
+y3e = ylabel('pitch error [deg]');
+ax3e = gca;
+ax3e.YLim = [-5 5];
+
+grid
+set(t3e, 'FontSize', fontTitle);
+set(x3e, 'FontSize', fontLabel);
+set(y3e, 'FontSize', fontLabel);
+
+% Roll
+figure("Name", "Roll")
+subplot(2, 1, 1)
 plot(data.truth.timeDuration, data.truth.euler(:, 3), '.k')
 hold on
-plot(data.imu.timeDuration, insEulerAnglesLog(:, 1), '.')
+plot(data.imu.timeDuration, insEulerAnglesLog(:, 1), '.', 'Color', green)
 hold on
 
-l5 = legend('Truth', 'INS', 'Location', 'SouthEast');
-t5 = title('Attitude: Roll');
-x5 = xlabel('time [s]');
-y5 = ylabel('roll [deg]');
-ax5 = gca;
+l3 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t3 = title('Roll Comparison');
+x3 = xlabel('time [s]');
+y3 = ylabel('roll [deg]');
+ax3 = gca;
 
 grid
-ax5.YLim = ax3.YLim;
-set(t5, 'FontSize', fontTitle);
-set(x5, 'FontSize', fontLabel);
-set(y5, 'FontSize', fontLabel);
-set(l5, 'FontSize', fontLegend);
+set(t3, 'FontSize', fontTitle);
+set(x3, 'FontSize', fontLabel);
+set(y3, 'FontSize', fontLabel);
+set(l3, 'FontSize', fontLegend);
+
+subplot(2, 1, 2)
+plot(data.imu.timeDuration, insEulerAnglesLog(:,3) - eulerInterp(:,1), '.r')
+
+t3e = title('Roll Error');
+x3e = xlabel('time [s]');
+y3e = ylabel('roll error [deg]');
+ax3e = gca;
+ax3e.YLim = [-5 5];
+
+grid
+set(t3e, 'FontSize', fontTitle);
+set(x3e, 'FontSize', fontLabel);
+set(y3e, 'FontSize', fontLabel);
 
 % Velocity
-figure('Name', 'NED Velocity')
-subplot(3, 1, 1)
-plot(data.raw_velocity.timeEpoch, data.raw_velocity.NED(:, 1), '.k')
+% North
+figure('Name', 'North Velocity')
+subplot(2, 1, 1)
+plot(data.imu.timeDuration, velInterp(:, 1), '.k')
 hold on
-plot(data.imu.timeEpoch, insVelocityNEDLog(:, 1))
+plot(data.imu.timeDuration, insVelocityNEDLog(:, 1),'.','Color', green)
 
 l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
-t6 = title('Velocity: North');
+t6 = title('North Velocity Comparison');
 x6 = xlabel('time [s]');
 y6 = ylabel('velocity [m/s]');
 ax6 = gca;
@@ -229,41 +293,202 @@ set(x6, 'FontSize', fontLabel);
 set(y6, 'FontSize', fontLabel);
 set(l6, 'FontSize', fontLegend);
 
-subplot(3, 1, 2)
-plot(data.raw_velocity.timeEpoch, data.raw_velocity.NED(:, 2), '.k')
-hold on
-plot(data.imu.timeEpoch, insVelocityNEDLog(:, 2))
+subplot(2, 1, 2)
+plot(data.imu.timeDuration, insVelocityNEDLog(:,1)- velInterp(:, 1), '.r')
 
-l7 = legend('Truth', 'INS', 'Location', 'SouthEast');
-t7 = title('Velocity: East');
-x7 = xlabel('time [s]');
-y7 = ylabel('velocity [m/s]');
-ax7 = gca;
-
-grid
-ax7.YLim = ax6.YLim;
-set(t7, 'FontSize', fontTitle);
-set(x7, 'FontSize', fontLabel);
-set(y7, 'FontSize', fontLabel);
-set(l7, 'FontSize', fontLegend);
-
-subplot(3, 1, 3)
-plot(data.raw_velocity.timeEpoch, data.raw_velocity.NED(:, 3), '.k')
-hold on
-plot(data.imu.timeEpoch, insVelocityNEDLog(:, 3))
-
-l8 = legend('Truth', 'INS', 'Location', 'SouthEast');
-t8 = title('Velocity: Down');
-x8 = xlabel('time [s]');
-y8 = ylabel('velocity [m/s]');
-ax8 = gca;
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('North Velocity Residuals');
+x6 = xlabel('time [s]');
+y6 = ylabel('velocity error [m/s]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
 
 grid
-ax8.YLim = ax6.YLim;
-set(t8, 'FontSize', fontTitle);
-set(x8, 'FontSize', fontLabel);
-set(y8, 'FontSize', fontLabel); 
-set(l8, 'FontSize', fontLegend);
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+% East
+figure('Name', 'East Velocity')
+subplot(2, 1, 1)
+plot(data.imu.timeDuration, velInterp(:, 2), '.k')
+hold on
+plot(data.imu.timeDuration, insVelocityNEDLog(:, 2),'.','Color', green)
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('East Velocity Comparison');
+x6 = xlabel('time [s]');
+y6 = ylabel('velocity [m/s]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+subplot(2, 1, 2)
+plot(data.imu.timeDuration, insVelocityNEDLog(:,2)- velInterp(:, 2), '.r')
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('East Velocity Residuals');
+x6 = xlabel('time [s]');
+y6 = ylabel('velocity error [m/s]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+% Down
+figure('Name', 'Down Velocity')
+subplot(2, 1, 1)
+plot(data.imu.timeDuration, velInterp(:, 3), '.k')
+hold on
+plot(data.imu.timeDuration, insVelocityNEDLog(:, 3),'.','Color', green)
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('Down Velocity Comparison');
+x6 = xlabel('time [s]');
+y6 = ylabel('velocity [m/s]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+subplot(2, 1, 2)
+plot(data.imu.timeDuration, insVelocityNEDLog(:,3)- velInterp(:, 3), '.r')
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('Down Velocity Residuals');
+x6 = xlabel('time [s]');
+y6 = ylabel('velocity error [m/s]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+% Position
+% North
+figure('Name', 'North Position')
+subplot(2, 1, 1)
+plot(data.imu.timeDuration, truthNED(:, 1), '.k')
+hold on
+plot(data.imu.timeDuration, posNED(:, 1),'.','Color', green)
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('North Velocity Comparison');
+x6 = xlabel('time [s]');
+y6 = ylabel('position [m]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+subplot(2, 1, 2)
+plot(data.imu.timeDuration, posNED(:,1)- truthNED(:, 1), '.r')
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('North Position Residuals');
+x6 = xlabel('time [s]');
+y6 = ylabel('position error [m]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+% East
+figure('Name', 'East Position')
+subplot(2, 1, 1)
+plot(data.imu.timeDuration, truthNED(:, 2), '.k')
+hold on
+plot(data.imu.timeDuration, posNED(:, 2),'.','Color', green)
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('East Position Comparison');
+x6 = xlabel('time [s]');
+y6 = ylabel('position [m]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+subplot(2, 1, 2)
+plot(data.imu.timeDuration, posNED(:,2)- truthNED(:, 2), '.r')
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('East Position Residuals');
+x6 = xlabel('time [s]');
+y6 = ylabel('position error [m]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+% Down
+figure('Name', 'Down Position')
+subplot(2, 1, 1)
+plot(data.imu.timeDuration, truthNED(:, 3), '.k')
+hold on
+plot(data.imu.timeDuration, posNED(:, 3),'.','Color', green)
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('Down Position Comparison');
+x6 = xlabel('time [s]');
+y6 = ylabel('position [m]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
+
+subplot(2, 1, 2)
+plot(data.imu.timeDuration, posNED(:,3)- truthNED(:, 3), '.r')
+
+l6 = legend('Truth', 'INS', 'Location', 'SouthEast');
+t6 = title('Down Position Residuals');
+x6 = xlabel('time [s]');
+y6 = ylabel('position error [m]');
+ax6 = gca;
+% ax6.YLim = [-50 50];
+
+grid
+set(t6, 'FontSize', fontTitle);
+set(x6, 'FontSize', fontLabel);
+set(y6, 'FontSize', fontLabel);
+set(l6, 'FontSize', fontLegend);
 
 % Geoplot
 
